@@ -5,8 +5,9 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
-#include "Image.h"
 #include <time.h>
+#include "Image.h"
+#include "ContoursHierarchy.h"
 
 using namespace cv;
 using namespace std;
@@ -28,8 +29,12 @@ namespace {
 			if (frame.empty())
 				break;
 
+			Mat fim;
+			fim = imread("test.jpg", CV_LOAD_IMAGE_COLOR);
+			IplImage ipl(fim);
+
 			clock_t t1 = clock();
-			IplImage ipl(frame);
+			//IplImage ipl(frame);
 			cout << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
 			cout << ((clock() - t1) ) << endl; t1 = clock();
@@ -44,9 +49,15 @@ namespace {
 
 			Mat frameBin(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
 			
+			
 			vector<vector<Point>> cvContours;
 			vector<Vec4i> cvHierarchy;
+
+			//findContours(fim, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
 			findContours(frameBin, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+			CA::ContoursHierarchy ca_ch(cvContours, cvHierarchy, frameBin.cols, frameBin.rows);
 
 			static int fps = 0;
 			{ /*FPS*/
