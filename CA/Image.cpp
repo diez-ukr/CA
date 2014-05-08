@@ -3,8 +3,11 @@
 #include <sstream>
 #include <thread>
 #include <xutility>
+#include <cmath>
 
 using namespace std;
+
+#define _SECURE_SCL 0
 
 namespace CA
 {
@@ -102,7 +105,6 @@ namespace CA
 		}
 		limits.push_back(std::make_pair(from, height));
 
-
 		std::vector<std::thread> workers;
 		for (int k = 0; k < threadCount; k++) 
 		{
@@ -143,15 +145,10 @@ namespace CA
 				}
 			}));
 		}
-
-
 		for (auto& thread : workers)
 		{
 			thread.join();
 		}
-
-
-
 		return retval;
 	}
 
@@ -178,7 +175,6 @@ namespace CA
 		}
 		limits.push_back(std::make_pair(from, height));
 
-
 		std::vector<std::thread> workers;
 		for (int k = 0; k < threadCount; k++)
 		{
@@ -198,15 +194,117 @@ namespace CA
 				}
 			}));
 		}
+		for (auto& thread : workers)
+		{
+			thread.join();
+		}
+		return retval;
+	}
 
+	void Image::outRawFile(std::string filename)
+	{
+		FILE *f = fopen(filename.c_str(), "w+");
+		if (f)
+		{
+			for (int i = 0; i < height; i++)
+			{
+				for (int j = 0; j < width * nchannels; j++)
+					fprintf(f, "%d ", get(i, j));
+				fprintf(f, "\n");
+			}
+			fclose(f);
+		}
+	}
 
+	std::vector<int> Image::buildHistogram()
+	{
+		Image *src = this;
+		Image _src;
+		if (nchannels == 3)
+			src = &(Image(this->grayScale()));
+		std::vector<int> retval(256);
+		std::vector<std::pair<int, int>> limits;
+		int threadCount = 4;
+		int stripSize = height / threadCount;
+		int from = 0;
+		for (int k = 0; k < threadCount - 1; k++)
+		{
+			limits.push_back(std::make_pair(from, from + stripSize));
+			from += stripSize;
+		}
+		limits.push_back(std::make_pair(from, height));
+
+		std::vector<std::vector<int>> partialHistograms(limits.size());
+
+		std::vector<std::thread> workers;
+		for (int k = 0; k < threadCount; k++)
+		{
+			workers.push_back(std::thread([k, &limits, this, &partialHistograms]()
+			{
+				std::vector<int> *partialHistogram = &partialHistograms[k];
+				partialHistogram->resize(256);
+				int from = limits[k].first;
+				int to = limits[k].second;
+				for (int i = from; i < to; i++)
+				{
+					for (int j = 0; j < width; j++)
+					{
+						partialHistogram->at(this->get(i, this->nchannels * j))++;
+					}
+				}
+			}));
+		}
 		for (auto& thread : workers)
 		{
 			thread.join();
 		}
 
+		/*mergiing partial histograms*/
 
+		for (unsigned i = 0; i < retval.size(); i++)
+		{
+			for (auto& partialHistogram : partialHistograms)
+			{
+				retval[i] += partialHistogram[i];
+			}
+		}
 
 		return retval;
+	}
+
+	unsigned char Image::otsuThreshold()
+	{
+		std::vector<int> histogram = buildHistogram();
+		int levelCount = histogram.size();
+		int sum = 0;
+		for (unsigned i = 1; i < levelCount; ++i)
+			sum += i * histogram[i];
+		int sumB = 0;
+		int wB = 0;
+		int wF = 0;
+		int mB;
+		int mF;
+		double max = 0;
+		double between;
+		int threshold = 0;
+		for (unsigned i = 0; i < levelCount; ++i) 
+		{
+			wB += histogram[i];
+			if (wB == 0)
+				continue;
+			wF = base.size() - wB;
+			if (wF == 0)
+				break;
+			sumB += i * histogram[i];
+			mB = sumB / wB;
+			mF = (sum - sumB) / wF;
+			between = wB * wF * pow(static_cast<double>(mB - mF), 2.0);
+			if (between > max) 
+			{
+				max = between;
+				threshold = i;
+			}
+		}
+		return static_cast<unsigned char>(threshold);
 	}
 }

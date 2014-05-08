@@ -58,7 +58,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)\opt\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>opencv_highgui249d.lib opencv_core249d.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>opencv_highgui249d.lib opencv_core249d.lib opencv_imgproc249d.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -66,7 +66,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>
       </PrecompiledHeader>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -78,6 +78,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(SolutionDir)\opt\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>opencv_highgui249.lib opencv_core249.lib opencv_imgproc249.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -85,9 +86,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CA.cpp" />
+    <ClCompile Include="Contour.cpp" />
+    <ClCompile Include="ContoursHierarchy.cpp" />
     <ClCompile Include="Image.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Contour.h" />
+    <ClInclude Include="ContoursHierarchy.h" />
     <ClInclude Include="Image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

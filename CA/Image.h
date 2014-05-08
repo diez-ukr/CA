@@ -8,6 +8,7 @@ namespace CA
 	private:
 		std::vector<unsigned char> base;;
 		void Initalize(int nchannels, int height, int width, const char colorModel[] = nullptr);
+		std::vector<int> buildHistogram();
 	public:
 		int nchannels;
 		int height;
@@ -18,7 +19,6 @@ namespace CA
 		Image(const Image &image);
 		Image();
 		~Image();
-		//Image& operator=(Image& from);
 
 		
 		void* getBase();
@@ -28,5 +28,7 @@ namespace CA
 		Image binarization(unsigned char threshold);
 		Image clone();
 		Image grayScale();
+		void outRawFile(std::string filename);
+		unsigned char otsuThreshold();
 	};
 }

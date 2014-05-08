@@ -1,4 +1,7 @@
+#pragma once
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include <iostream>
 #include <vector>
 #include <stdio.h>
@@ -9,7 +12,6 @@ using namespace cv;
 using namespace std;
 
 
-
 //hide the local functions in an anon namespace
 namespace {
 
@@ -18,71 +20,80 @@ namespace {
 		char filename[200];
 		string window_name = "video | q or esc to quit";
 		cout << "press space to save a picture. q or esc to quit" << endl;
-		namedWindow(window_name, CV_WINDOW_KEEPRATIO); //resizable window;
+		namedWindow(window_name, CV_WINDOW_AUTOSIZE); //resizable window;
 		Mat frame;
 		for (;;) {
+			static std::string mode = "norm";
 			capture >> frame;
 			if (frame.empty())
 				break;
 
 			clock_t t1 = clock();
 			IplImage ipl(frame);
-			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
+			cout << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
-			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
+			cout << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_grey(caim_color.grayScale());
-			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
-			CA::Image caim_bin(caim_grey.binarization(127));
-			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
-			/*{
-				for (int i = 0; i < caim_grey.height; i++)
-				for (int j = 0; j < caim_grey.width; j++)
-					caim_grey.set(i, j, caim_grey.get(i, j));
+			cout << ((clock() - t1) ) << endl; t1 = clock();
 
-			}*/
+			int threshold = caim_grey.otsuThreshold();
+			cout << ((clock() - t1)) << endl; t1 = clock();
 
-				Mat frame1(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
+			CA::Image caim_bin(caim_grey.binarization(threshold));
+			cout << ((clock() - t1) ) << endl; t1 = clock();
 
-			/*{
-				FILE *f = fopen("of.txt", "w+");
-				if (f)
+			Mat frameBin(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
+			
+			vector<vector<Point>> cvContours;
+			vector<Vec4i> cvHierarchy;
+			findContours(frameBin, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+			static int fps = 0;
+			{ /*FPS*/
+				static int sec = clock() / 1000;
+				static int frameCount = 0;
+				frameCount++;
+				if (sec != clock() / 1000)
 				{
-					for (int i = 0; i < caim_color.height; i++)
-					{
-						for (int j = 0; j < caim_color.width; j+=3)
-							fprintf(f, "%d ", caim_color.get(i, j));
-						fprintf(f, "\n");
-					}
-					fclose(f);
+					fps = frameCount;
+					frameCount = 0;
+					sec = clock() / 1000;
 				}
-			}*/
+			}
 
-			imshow(window_name, frame1);
+			{/*print FPS*/
+				stringstream ss;
+				ss << fps;
+				ss.flush();
+				Mat *matToType = &frameBin;
+				putText(*matToType, ss.str(), Point(matToType->cols / 20, matToType->rows / 20), FONT_HERSHEY_SIMPLEX, 1, Scalar(127, 127, 127));
+			}
+			
+			if (mode == "norm")
+				imshow(window_name, frame);
+			if (mode == "bin")
+				imshow(window_name, frameBin);
 
-			/*for (;;)
-			{
-				Mat fim;
-				fim = imread("test.jpg", CV_LOAD_IMAGE_COLOR);
-				IplImage ipl(fim);
-				CA::Image caim_color(ipl);
-				//CA::Image caim_grey = caim_color.clone();
-				CA::Image caim_grey(caim_color.grayScale());
-				Mat frame1(cv::Size(caim_grey.width, caim_grey.height), caim_grey.getCvType(), caim_grey.getBase());
-				imshow(window_name, frame1);	
-				waitKey(0);
-			}*/
 
 
 
 			char key = (char)waitKey(5); //delay N millis, usually long enough to display and capture input
 			switch (key) {
+			case 'n':
+			case 'N':
+				mode = "norm";
+				break;
+			case 'b':
+			case 'B':
+				mode = "bin";
+				break;
 			case 'q':
 			case 'Q':
 			case 27: //escape key
 				return 0;
 			case ' ': //Save an image
 				sprintf(filename, "filename%.3d.jpg", n++);
-				imwrite(filename, frame1);
+				imwrite(filename, frameBin);
 				cout << "Saved " << filename << endl;
 				break;
 			default:
