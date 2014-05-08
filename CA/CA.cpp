@@ -27,16 +27,13 @@ namespace {
 
 			clock_t t1 = clock();
 			IplImage ipl(frame);
-				cout << (((float)clock() - (float)t1) / 1000000.0F) * 1000 << endl; t1 = clock();
+			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
-				cout << (((float)clock() - (float)t1) / 1000000.0F) * 1000 << endl; t1 = clock();
+			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
 			CA::Image caim_grey(caim_color.grayScale());
-				cout << (((float)clock() - (float)t1) / 1000000.0F) * 1000 << endl; t1 = clock();
+			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
 			CA::Image caim_bin(caim_grey.binarization(127));
-				cout << (((float)clock() - (float)t1) / 1000000.0F) * 1000 << endl; t1 = clock();
-			CA::Image caim_bin_8b(caim_bin.to8b());
-				cout << (((float)clock() - (float)t1) / 1000000.0F) * 1000 << endl; t1 = clock();
-
+			//	cout << (((float)clock() - (float)t1) / CLOCKS_PER_SEC) << endl; t1 = clock();
 			/*{
 				for (int i = 0; i < caim_grey.height; i++)
 				for (int j = 0; j < caim_grey.width; j++)
@@ -44,7 +41,7 @@ namespace {
 
 			}*/
 
-			Mat frame1(cv::Size(caim_bin_8b.width, caim_bin_8b.height), caim_bin_8b.getCvType(), caim_bin_8b.getBase());
+				Mat frame1(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
 
 			/*{
 				FILE *f = fopen("of.txt", "w+");

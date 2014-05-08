@@ -13,67 +13,33 @@ namespace CA
 	{
 	}
 
-	Image::Image(int nchannels, int depth, int height, int width, const char colorModel[])
+	Image::Image(int nchannels, int height, int width, const char colorModel[])
 	{
-		this->Initalize(nchannels, depth, height, width, colorModel);
+		this->Initalize(nchannels, height, width, colorModel);
 	}
 
 	Image::Image(const IplImage &iplImage)
 	{
-		this->Initalize(iplImage.nChannels, iplImage.depth, iplImage.height, iplImage.width, iplImage.channelSeq);
-		if (depth == 8)
-		{
-			std::vector<unsigned char> *b = new std::vector<unsigned char>();
-			b->assign((unsigned char*)(iplImage.imageData), (unsigned char*)(iplImage.imageData) + nchannels * width * height);
-			base = b;
-		}
-		else if (depth == 1)
-		{
-			std::vector<bool> *b = new std::vector<bool>();
-			b->assign((bool*)(iplImage.imageData), (bool*)(iplImage.imageData) + nchannels * width * height);
-			base = b;
-		}
-
+		this->Initalize(iplImage.nChannels, iplImage.height, iplImage.width, iplImage.channelSeq);
+		base.assign((unsigned char*)(iplImage.imageData), (unsigned char*)(iplImage.imageData) + nchannels * width * height);
 	}
 
 	Image::Image(const Image &image)
 	{
 		strcpy(colorModel, image.colorModel);
-		this->depth = image.depth;
 		this->height = image.height;
 		this->nchannels = image.nchannels;
 		this->width = image.width;
-		if (depth == 1)
-		{
-			assert(nchannels == 1);
-
-			std::vector<bool> *src = (std::vector<bool> *)(image.base);
-			std::vector<bool> *dst = new std::vector<bool>(src->begin(), src->end());
-			base = dst;
-		}
-		else if (depth == 8)
-		{
-			std::vector<unsigned char> *src = (std::vector<unsigned char> *)(image.base);
-			std::vector<unsigned char> *dst = new std::vector<unsigned char>(src->begin(), src->end());
-			base = dst;
-		}
+		this->base = image.base;
 	}
 
 
 	Image::~Image()
 	{
-		if (depth == 1)
-		{
-			assert(nchannels == 1);
-			delete base;
-		}
-		else if (depth == 8)
-		{
-			delete base;
-		}
+
 	}
 
-	void Image::Initalize(int nchannels, int depth, int height, int width, const char colorModel[] /*= nullptr*/)
+	void Image::Initalize(int nchannels, int height, int width, const char colorModel[] /*= nullptr*/)
 	{
 		if (nchannels != 1 && nchannels != 3)
 		{
@@ -82,15 +48,8 @@ namespace CA
 			ss.flush();
 			throw exception(ss.str().c_str());
 		}
-		if (depth != 1 && depth != 8)
-		{
-			stringstream ss;
-			ss << "Cannot create image. nchannels = " << nchannels << " is unsupported";
-			ss.flush();
-			throw exception(ss.str().c_str());
-		}
+		
 		this->nchannels = nchannels;
-		this->depth = depth;
 		this->height = height;
 		this->width = width;
 		if (colorModel)
@@ -102,60 +61,24 @@ namespace CA
 				else if (nchannels == 3)
 				strcpy(this->colorModel, "BGR");
 		}
-		if (depth == 1)
-		{
-			assert(nchannels == 1);
-			base = new std::vector<bool>(height * width * nchannels);
-		}
-		else if (depth == 8)
-		{
-			base = new std::vector<unsigned char>(height * width * nchannels);
-		}
+		this->base.resize(nchannels * width * height);
 	}
 
 	int Image::getCvType()
 	{
-		if (depth == 8 && nchannels == 1) return CV_8U;
-		if (depth == 8 && nchannels == 3) return CV_8UC3;	
+		if (nchannels == 1) return CV_8U;
+		if (nchannels == 3) return CV_8UC3;	
 	}
 
 	unsigned char Image::get(int i, int j)
 	{
-		if (depth == 8)
-			return ((std::vector<unsigned char>*)base)->at(nchannels * width * i + j);
-		if (depth == 1)
-			return ((std::vector<bool>*)base)->at(nchannels * width * i + j);
-		return 0;
+		return base[nchannels * width * i + j];
 	}
 
 	void Image::set(int i, int j, const unsigned char &val)
 	{
-		if (depth == 8)
-		{
-			((std::vector<unsigned char>*)base)->at(nchannels * width * i + j) = val;
-			return;
-		}
-		if (depth == 1)
-		{
-			((std::vector<bool>*)base)->at(nchannels * width * i + j) = val;
-			return;
-		}
+		base[nchannels * width * i + j] = val;
 		return;
-	}
-
-	Image Image::to8b()
-	{
-		if (depth == 8)
-			return clone();
-		Image retval(1, 8, height, width);
-		for (int i = 0; i < height; i++)
-		{
-			for (int j = 0; j < width; j++)
-			{
-				retval.set(i, j, 255 * get(i, j));
-			}
-		}
-		return retval;
 	}
 
 	Image Image::clone()
@@ -167,7 +90,7 @@ namespace CA
 	{
 		if (nchannels == 1)
 			return clone();
-		Image retval(1, 8, height, width);
+		Image retval(1, height, width);
 		std::vector<std::pair<int, int>> limits;
 		int threadCount = 4;
 		int stripSize = height / threadCount;
@@ -187,24 +110,34 @@ namespace CA
 			{
 				int from = limits[k].first;
 				int to = limits[k].second;
+				float channelCoef1, channelCoef2, channelCoef3;
+				if (!strcmp("BGR", this->colorModel))
+				{
+					channelCoef1 = 0.114;
+					channelCoef2 = 0.587;
+					channelCoef3 = 0.299;
+				}
+				else if (!strcmp("RGB", this->colorModel))
+				{
+
+					channelCoef1 = 0.299;
+					channelCoef2 = 0.587;
+					channelCoef3 = 0.114;
+				}
+
 				for (int i = from; i < to; i++)
 				{
 					for (int j = 0; j < width; j ++)
 					{
-						int r, g, b;
-						if (!strcmp("RGB", this->colorModel))
-						{
-							r = this->get(i, this->nchannels * j);
-							g = this->get(i, this->nchannels * j + 1);
-							b = this->get(i, this->nchannels * j + 2);
-						}
-						else if (!strcmp("BGR", this->colorModel))
-						{
-							b = this->get(i, this->nchannels * j);
-							g = this->get(i, this->nchannels * j + 1);
-							r = this->get(i, this->nchannels * j + 2);
-						}
-						unsigned char color = static_cast<unsigned char>(0.299 * r + 0.587 * g + 0.114 * b);
+						int ch1, ch2, ch3;
+						ch1 = this->get(i, this->nchannels * j);
+						ch2 = this->get(i, this->nchannels * j + 1);
+						ch3 = this->get(i, this->nchannels * j + 2);
+						unsigned char color = static_cast<unsigned char>(
+							channelCoef1 * ch1
+							+ channelCoef2 * ch2
+							+ channelCoef3 * ch3
+						);
 						retval.set(i, j, color);
 					}
 				}
@@ -224,11 +157,7 @@ namespace CA
 
 	void* Image::getBase()
 	{
-		if (depth == 8)
-		{
-			std::vector<unsigned char> *b = (std::vector<unsigned char> *)base;
-			return &((*b)[0]);
-		}
+		return &(base[0]);
 	}
 
 	Image Image::binarization(unsigned char threshold)
@@ -237,7 +166,7 @@ namespace CA
 		Image _src;
 		if (nchannels == 3)
 			src = &(Image(this->grayScale()));
-		Image retval(1, 1, height, width);
+		Image retval(1, height, width);
 		std::vector<std::pair<int, int>> limits;
 		int threadCount = 4;
 		int stripSize = height / threadCount;
@@ -262,7 +191,7 @@ namespace CA
 					for (int j = 0; j < width; j++)
 					{
 						if (this->get(i, this->nchannels * j) > threshold)
-							retval.set(i, j, 1);
+							retval.set(i, j, 255);
 						else
 							retval.set(i, j, 0);
 					}
