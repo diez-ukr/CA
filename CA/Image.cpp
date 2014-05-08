@@ -9,7 +9,7 @@ using namespace std;
 namespace CA
 {
 
-	Image::Image()
+	Image::Image() 
 	{
 	}
 
