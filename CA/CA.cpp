@@ -8,6 +8,9 @@
 #include <time.h>
 #include "Image.h"
 #include "ContoursHierarchy.h"
+#include "Gauge.h"
+#include "dirent.h"
+#include <memory>
 
 using namespace cv;
 using namespace std;
@@ -17,6 +20,32 @@ using namespace std;
 namespace {
 
 	int process(VideoCapture& capture) {
+
+		std::string dir("gauges");
+		std::vector<std::shared_ptr<CA::Gauge>> gauges;
+
+		{/*LOAD GAUGES*/
+			DIR *dp;
+			struct dirent *dirp;
+			struct stat filestat;
+
+			dp = opendir(dir.c_str());
+			while (dp && (dirp = readdir(dp)))
+			{
+				string filepath;
+				filepath = dir + "/" + dirp->d_name;
+				// If the file is a directory (or is in some way invalid) we'll skip it 
+				if (stat(filepath.c_str(), &filestat)) continue;
+				if (S_ISDIR(filestat.st_mode))         continue;
+				char ext[255];
+				_splitpath(filepath.c_str(), nullptr, nullptr, nullptr, ext);
+				std::string s_ext(ext);
+				if (s_ext != ".bmp" && s_ext != ".BMP" && s_ext != ".jpg" && s_ext != ".JPG") continue;
+				gauges.push_back(std::shared_ptr<CA::Gauge>(new CA::Gauge(filepath)));
+			}
+
+			closedir(dp);
+		}
 		int n = 0;
 		char filename[200];
 		string window_name = "video | q or esc to quit";
@@ -29,12 +58,9 @@ namespace {
 			if (frame.empty())
 				break;
 
-			Mat fim;
-			fim = imread("test.jpg", CV_LOAD_IMAGE_COLOR);
-			IplImage ipl(fim);
 
 			clock_t t1 = clock();
-			//IplImage ipl(frame);
+			IplImage ipl(frame);
 			cout << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
 			cout << ((clock() - t1) ) << endl; t1 = clock();
@@ -54,8 +80,8 @@ namespace {
 			vector<Vec4i> cvHierarchy;
 
 			//findContours(fim, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
-
-			findContours(frameBin, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+			Mat imageToFindContour = frameBin.clone();
+			findContours(imageToFindContour, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_TC89_KCOS);
 
 			CA::ContoursHierarchy ca_ch(cvContours, cvHierarchy, frameBin.cols, frameBin.rows);
 

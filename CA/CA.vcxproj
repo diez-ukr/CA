@@ -88,11 +88,14 @@
     <ClCompile Include="CA.cpp" />
     <ClCompile Include="Contour.cpp" />
     <ClCompile Include="ContoursHierarchy.cpp" />
+    <ClCompile Include="Gauge.cpp" />
     <ClCompile Include="Image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Contour.h" />
     <ClInclude Include="ContoursHierarchy.h" />
+    <ClInclude Include="dirent.h" />
+    <ClInclude Include="Gauge.h" />
     <ClInclude Include="Image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
