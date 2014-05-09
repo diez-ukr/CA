@@ -11,6 +11,8 @@
 #include "Gauge.h"
 #include "dirent.h"
 #include <memory>
+#include <cmath>
+#include "Analyser.h"
 
 using namespace cv;
 using namespace std;
@@ -21,31 +23,51 @@ namespace {
 
 	int process(VideoCapture& capture) {
 
-		std::string dir("gauges");
-		std::vector<std::shared_ptr<CA::Gauge>> gauges;
+		CA::Analyser analyser(std::string("gauges1/"));
 
-		{/*LOAD GAUGES*/
-			DIR *dp;
-			struct dirent *dirp;
-			struct stat filestat;
+		/*{
+			std::vector<std::pair<float, float>> acf1 = gauges[0]->contoursHierarchy->getRoot()->childs[0]->acf;
+			std::vector<std::pair<float, float>> acf2 = gauges[1]->contoursHierarchy->getRoot()->childs[0]->acf;
+			std::vector<std::pair<float, float>> acf3 = gauges[2]->contoursHierarchy->getRoot()->childs[0]->acf;
 
-			dp = opendir(dir.c_str());
-			while (dp && (dirp = readdir(dp)))
+			std::pair<float, float> acfd1 = CA::Contour::akfDistance(
+				*gauges[1]->contoursHierarchy->getRoot()->childs[0],
+				*gauges[0]->contoursHierarchy->getRoot()->childs[0]
+				);
+			std::pair<float, float> acfd2 = CA::Contour::akfDistance(
+				*gauges[1]->contoursHierarchy->getRoot()->childs[0],
+				*gauges[2]->contoursHierarchy->getRoot()->childs[0]
+				);
+
+			std::pair<float, float> d1 = CA::Contour::maxInterrelationFunction(
+				*gauges[1]->contoursHierarchy->getRoot()->childs[0],
+				*gauges[0]->contoursHierarchy->getRoot()->childs[0]
+				);
+			std::pair<float, float> d2 = CA::Contour::maxInterrelationFunction(
+				*gauges[1]->contoursHierarchy->getRoot()->childs[0],
+				*gauges[2]->contoursHierarchy->getRoot()->childs[0]
+				);
+
+			cout << "1";
+		}
+
+		{
+			std::map<float, std::string> diffs;
+			for (auto i = 1; i < gauges.size(); i++)
 			{
-				string filepath;
-				filepath = dir + "/" + dirp->d_name;
-				// If the file is a directory (or is in some way invalid) we'll skip it 
-				if (stat(filepath.c_str(), &filestat)) continue;
-				if (S_ISDIR(filestat.st_mode))         continue;
-				char ext[255];
-				_splitpath(filepath.c_str(), nullptr, nullptr, nullptr, ext);
-				std::string s_ext(ext);
-				if (s_ext != ".bmp" && s_ext != ".BMP" && s_ext != ".jpg" && s_ext != ".JPG") continue;
-				gauges.push_back(std::shared_ptr<CA::Gauge>(new CA::Gauge(filepath)));
+				std::pair<float, float> d = CA::Contour::maxInterrelationFunction(
+					*gauges[0]->contoursHierarchy->getRoot()->childs[0],
+					*gauges[i]->contoursHierarchy->getRoot()->childs[0]
+				);
+				cout << gauges[i]->gaugeCharacter << " " << d.first << " " << d.second << endl;
+				//diffs(gauges[i]->gaugeCharacter, pow(d.first * d.first + d.second * d.second, 0.5)));
+				diffs[pow(d.first * d.first + d.second * d.second, 0.5)] = gauges[i]->gaugeCharacter;
 			}
 
-			closedir(dp);
-		}
+		}*/
+		
+
+
 		int n = 0;
 		char filename[200];
 		string window_name = "video | q or esc to quit";
@@ -59,9 +81,34 @@ namespace {
 				break;
 
 
+
+			Mat frameContrast = Mat::zeros(frame.size(), frame.type());
+
+			for (int y = 0; y < frame.rows; y++)
+			{
+				for (int x = 0; x < frame.cols; x++)
+				{
+					for (int c = 0; c < 3; c++)
+					{
+						frameContrast.at<Vec3b>(y, x)[c] =
+							saturate_cast<uchar>(2.0 * (frame.at<Vec3b>(y, x)[c]));
+					}
+				}
+			}
+
+
+
+
 			clock_t t1 = clock();
-			IplImage ipl(frame);
-			cout << ((clock() - t1) ) << endl; t1 = clock();
+			IplImage ipl(frameContrast);
+			/*cout << ((clock() - t1)) << endl; t1 = clock();
+			{
+				CA::Contour *a1 = gauges[0]->contoursHierarchy->getRoot()->childs[0];
+				CA::Contour *a2 = gauges[1]->contoursHierarchy->getRoot()->childs[0];
+				std::pair<float, float> mirlf = CA::Contour::maxInterrelationFunction(*a1, *a2);
+				cout << mirlf.first;
+			}*/
+			//cout << "maxInterrelationFunction" << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
 			cout << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_grey(caim_color.grayScale());
@@ -69,7 +116,7 @@ namespace {
 
 			int threshold = caim_grey.otsuThreshold();
 			cout << ((clock() - t1)) << endl; t1 = clock();
-
+			cout << "threshold = " << threshold << endl;
 			CA::Image caim_bin(caim_grey.binarization(threshold));
 			cout << ((clock() - t1) ) << endl; t1 = clock();
 
@@ -84,6 +131,7 @@ namespace {
 			findContours(imageToFindContour, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_TC89_KCOS);
 
 			CA::ContoursHierarchy ca_ch(cvContours, cvHierarchy, frameBin.cols, frameBin.rows);
+			vector<CA::Result> resV = analyser.analyse(ca_ch);
 
 			static int fps = 0;
 			{ /*FPS*/
@@ -105,11 +153,25 @@ namespace {
 				Mat *matToType = &frameBin;
 				putText(*matToType, ss.str(), Point(matToType->cols / 20, matToType->rows / 20), FONT_HERSHEY_SIMPLEX, 1, Scalar(127, 127, 127));
 			}
+
+			{/*print Res*/
+				for (CA::Result &res : resV)
+				{
+					stringstream ss;
+					ss << res.gauge->gaugeCharacter;
+					ss.flush();
+					Mat *matToType = &frame;
+					putText(*matToType, ss.str(), Point(res.contour->startPoint.first, res.contour->startPoint.second), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 0));
+				}
+				
+			}
 			
 			if (mode == "norm")
 				imshow(window_name, frame);
 			if (mode == "bin")
 				imshow(window_name, frameBin);
+			if (mode == "con")
+				imshow(window_name, frameContrast);
 
 
 
@@ -123,6 +185,10 @@ namespace {
 			case 'b':
 			case 'B':
 				mode = "bin";
+				break;
+			case 'c':
+			case 'C':
+				mode = "con";
 				break;
 			case 'q':
 			case 'Q':

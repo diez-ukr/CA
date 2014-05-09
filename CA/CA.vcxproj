@@ -85,6 +85,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Analyser.cpp" />
     <ClCompile Include="CA.cpp" />
     <ClCompile Include="Contour.cpp" />
     <ClCompile Include="ContoursHierarchy.cpp" />
@@ -92,6 +93,7 @@
     <ClCompile Include="Image.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Analyser.h" />
     <ClInclude Include="Contour.h" />
     <ClInclude Include="ContoursHierarchy.h" />
     <ClInclude Include="dirent.h" />

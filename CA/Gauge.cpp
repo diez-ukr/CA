@@ -21,7 +21,7 @@ namespace CA
 		cv::Mat matBin(cv::Size(bin.width, bin.height), bin.getCvType(), bin.getBase());
 		vector<vector<cv::Point>> cvContours;
 		vector<cv::Vec4i> cvHierarchy;
-		findContours(matBin.clone(), cvContours, cvHierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_TC89_KCOS);
+		findContours(matBin.clone(), cvContours, cvHierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 		this->contoursHierarchy = new ContoursHierarchy(cvContours, cvHierarchy, matBin.cols, matBin.rows);
 		this->gaugeCharacter = getGaugeCharacterFromFileName(filename);
 	}

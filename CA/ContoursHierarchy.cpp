@@ -48,12 +48,13 @@ namespace CA
 		}
 		if (addOuterContour)
 		{
-			std::vector<std::pair<int, int>> newBase;
-			newBase.push_back(std::make_pair(0, 0));
-			newBase.push_back(std::make_pair(0, imgHeigth - 3));
-			newBase.push_back(std::make_pair(imgWidth - 3, imgHeigth - 3));
-			newBase.push_back(std::make_pair(imgWidth - 3, 0));
-			this->root = new Contour(nullptr, std::vector<Contour*>(), newBase, std::make_pair(1, 1));
+			std::vector<cv::Point> newBase;
+			newBase.push_back(cv::Point(0, 0));
+			newBase.push_back(cv::Point(0, imgHeigth - 3));
+			newBase.push_back(cv::Point(imgWidth - 3, imgHeigth - 3));
+			newBase.push_back(cv::Point(imgWidth - 3, 0));
+			this->root = new Contour(nullptr, std::vector<Contour*>(), std::vector<std::pair<int, int>>(), std::make_pair(1, 1));
+			cvContour2CACountour(newBase, root);
 		}
 
 		std::vector<Contour *> hierachy(cvHierarchy.size());
@@ -93,12 +94,18 @@ namespace CA
 	{
 		std::vector<std::pair<int, int>> base;
 		std::pair<int, int> startPoint(cvContour[0].x, cvContour[0].y);
-		for (unsigned i = 0; i < cvContour.size(); i++)
+		for (unsigned i = 0; i < cvContour.size() - 1; i++)
 		{
-			base.push_back(std::make_pair(cvContour[i].x - startPoint.first, cvContour[i].y - startPoint.second));
+			base.push_back(std::make_pair(cvContour[i + 1].x - cvContour[i].x, cvContour[i + 1].y - cvContour[i].y));
 		}
+		base.push_back(std::make_pair(cvContour[0].x - cvContour[cvContour.size() - 1].x, cvContour[0].y - cvContour[cvContour.size() - 1].y));
 		retval->setBase(base);
 		retval->setStartPoint(startPoint);
 		return;
+	}
+
+	Contour* ContoursHierarchy::getRoot()
+	{
+		return root;
 	}
 }

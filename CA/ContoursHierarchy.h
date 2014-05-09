@@ -12,6 +12,7 @@ namespace CA
 		Contour *root;
 		void cvContour2CACountour(std::vector<cv::Point> cvContour, Contour* retval);
 	public:
+		Contour* getRoot();
 		ContoursHierarchy(std::vector<std::vector<cv::Point>> cvContours, std::vector<cv::Vec4i> cvHierarchy, int imgWidth, int imgHeigth);
 		ContoursHierarchy();
 		~ContoursHierarchy();

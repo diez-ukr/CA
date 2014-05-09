@@ -6,7 +6,7 @@ namespace CA
 	class Image
 	{
 	private:
-		std::vector<unsigned char> base;;
+		std::vector<unsigned char> base;
 		void Initalize(int nchannels, int height, int width, const char colorModel[] = nullptr);
 		std::vector<int> buildHistogram();
 	public:
