@@ -307,4 +307,208 @@ namespace CA
 		}
 		return static_cast<unsigned char>(threshold);
 	}
+
+	Image Image::binarizationGauss(unsigned char deltaThreshold, unsigned char threshold)
+	{
+		Image *src = this;
+		Image _src;
+		if (nchannels == 3)
+			src = &(Image(this->grayScale()));
+		Image retval(1, height, width);
+		std::vector<std::pair<int, int>> limits;
+		int threadCount = 4;
+		int stripSize = height / threadCount;
+		int from = 0;
+		for (int k = 0; k < threadCount - 1; k++)
+		{
+			limits.push_back(std::make_pair(from, from + stripSize));
+			from += stripSize;
+		}
+		limits.push_back(std::make_pair(from, height));
+
+		std::vector<std::thread> workers;
+		for (int k = 0; k < threadCount; k++)
+		{
+			workers.push_back(std::thread([k, &limits, this, &retval, &deltaThreshold, &threshold]()
+			{
+				int from = limits[k].first;
+				int to = limits[k].second;
+				unsigned char nei[8];
+				for (int i = from; i < to; i++)
+				{
+					for (int j = 0; j < width; j++)
+					{
+						getNeighbourIntens(i, j, nei);
+						unsigned char cur = this->get(i, this->nchannels * j);
+						int bN = 0, wN = 0;
+						int delta;
+						for (auto k = 0; k < 8; k++)
+						{
+							delta = static_cast<int>(nei[k]) - cur;
+							if (delta > deltaThreshold)
+							{
+								wN++;
+								continue;
+							}
+							if (-delta > deltaThreshold)
+							{
+								bN++;
+								continue;
+							}
+						}
+						if (bN >= 3 && wN < bN)
+						{
+							retval.set(i, j, 255);
+							continue;
+						}
+						if (wN >= 3 && wN > bN)
+						{
+							retval.set(i, j, 0);
+							continue;
+						}
+						/*if (i != 0 && j != 0)
+						{
+							int backDelta = abs(static_cast<int>(nei[7]) - cur);
+							int upDelta = abs(static_cast<int>(nei[1]) - cur);
+							if (backDelta < upDelta && backDelta < deltaThreshold)
+							{
+								retval.set(i, j, retval.get(i, j - 1));
+								continue;
+							}
+							if (backDelta >= upDelta && backDelta < deltaThreshold)
+							{
+								retval.set(i, j, retval.get(i - 1, j));
+								continue;
+							}
+						}*/
+
+						if (this->get(i, this->nchannels * j) > threshold)
+							retval.set(i, j, 255);
+						else
+							retval.set(i, j, 0);
+					}
+				}
+			}));
+		}
+		for (auto& thread : workers)
+		{
+			thread.join();
+		}
+		return retval;
+	}
+
+	void Image::getNeighbourIntens(unsigned i, unsigned j, unsigned char *dst)
+	{
+		assert(NULL != dst);
+		if (i == 0)
+		{
+			unsigned char curInt = get(i, j);
+			if (j == 0)
+			{
+				dst[0] = curInt;
+				dst[1] = curInt;
+				dst[2] = curInt;
+				dst[3] = get(i, j + 1);
+				dst[4] = get(i + 1, j + 1);
+				dst[5] = get(i + 1, j);
+				dst[6] = curInt;
+				dst[7] = curInt;
+				return;
+			}
+			if (j == width - 1)
+			{
+				dst[0] = curInt;
+				dst[1] = curInt;
+				dst[2] = curInt;
+				dst[3] = curInt;
+				dst[4] = curInt;
+				dst[5] = get(i + 1, j);
+				dst[6] = get(i + 1, j - 1);
+				dst[7] = get(i, j - 1);
+				return;
+			}
+			dst[0] = curInt;
+			dst[1] = curInt;
+			dst[2] = curInt;
+			dst[3] = get(i, j + 1);
+			dst[4] = get(i + 1, j + 1);
+			dst[5] = get(i + 1, j);
+			dst[6] = get(i + 1, j - 1);
+			dst[7] = get(i, j - 1);
+			return;
+		}
+
+		if (i == height - 1)
+		{
+			unsigned char curInt = get(i, j);
+			if (j == 0)
+			{
+				dst[0] = curInt;
+				dst[1] = get(i - 1, j);
+				dst[2] = get(i - 1, j + 1);
+				dst[3] = get(i, j + 1);
+				dst[4] = curInt;
+				dst[5] = curInt;
+				dst[6] = curInt;
+				dst[7] = curInt;
+				return;
+			}
+			if (j == width - 1)
+			{
+				dst[0] = get(i - 1, j - 1);
+				dst[1] = get(i - 1, j);
+				dst[2] = curInt;
+				dst[3] = curInt;
+				dst[4] = curInt;
+				dst[5] = curInt;
+				dst[6] = curInt;
+				dst[7] = get(i, j - 1);
+				return;
+			}
+			dst[0] = get(i - 1, j - 1);
+			dst[1] = get(i - 1, j);
+			dst[2] = get(i - 1, j + 1);
+			dst[3] = get(i, j + 1);
+			dst[4] = curInt;
+			dst[5] = curInt;
+			dst[6] = curInt;
+			dst[7] = get(i, j - 1);
+			return;
+		}
+
+		if (j == 0)
+		{
+			unsigned char curInt = get(i, j);
+			dst[0] = curInt;
+			dst[1] = get(i - 1, j);
+			dst[2] = get(i - 1, j + 1);
+			dst[3] = get(i, j + 1);
+			dst[4] = get(i + 1, j + 1);
+			dst[5] = get(i + 1, j);
+			dst[6] = curInt;
+			dst[7] = curInt;
+			return;
+		}		
+		if (j == width - 1)
+		{
+			unsigned char curInt = get(i, j);
+			dst[0] = get(i - 1, j - 1);
+			dst[1] = get(i - 1, j);
+			dst[2] = curInt;
+			dst[3] = curInt;
+			dst[4] = curInt;
+			dst[5] = get(i + 1, j);
+			dst[6] = get(i + 1, j - 1);
+			dst[7] = get(i, j - 1);
+			return;
+		}
+		dst[0] = get(i - 1, j - 1);
+		dst[1] = get(i - 1, j);
+		dst[2] = get(i - 1, j + 1);
+		dst[3] = get(i, j + 1);
+		dst[4] = get(i + 1, j + 1);
+		dst[5] = get(i + 1, j);
+		dst[6] = get(i + 1, j - 1);
+		dst[7] = get(i, j - 1);
+	}
 }

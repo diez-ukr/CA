@@ -13,6 +13,7 @@
 #include <memory>
 #include <cmath>
 #include "Analyser.h"
+#include "Logger.h"
 
 using namespace cv;
 using namespace std;
@@ -74,11 +75,17 @@ namespace {
 		cout << "press space to save a picture. q or esc to quit" << endl;
 		namedWindow(window_name, CV_WINDOW_AUTOSIZE); //resizable window;
 		Mat frame;
+		CA::Logger::logEvent("Starting main loop");
 		for (;;) {
 			static std::string mode = "norm";
+			//CA::Logger::logEvent("Getting frame...");
 			capture >> frame;
+			//CA::Logger::logEvent("Getting is got");
 			if (frame.empty())
+			{
 				break;
+				CA::Logger::logError("Empty frame");
+			}
 
 
 
@@ -91,7 +98,7 @@ namespace {
 					for (int c = 0; c < 3; c++)
 					{
 						frameContrast.at<Vec3b>(y, x)[c] =
-							saturate_cast<uchar>(2.0 * (frame.at<Vec3b>(y, x)[c]));
+							saturate_cast<uchar>(1.0 * (frame.at<Vec3b>(y, x)[c]));
 					}
 				}
 			}
@@ -117,7 +124,8 @@ namespace {
 			int threshold = caim_grey.otsuThreshold();
 			cout << ((clock() - t1)) << endl; t1 = clock();
 			cout << "threshold = " << threshold << endl;
-			CA::Image caim_bin(caim_grey.binarization(threshold));
+			CA::Image caim_bin(caim_grey.binarization(120));
+			//CA::Image caim_bin(caim_grey.binarizationGauss(20, threshold));
 			cout << ((clock() - t1) ) << endl; t1 = clock();
 
 			Mat frameBin(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
@@ -159,9 +167,10 @@ namespace {
 				{
 					stringstream ss;
 					ss << res.gauge->gaugeCharacter;
+					ss << static_cast<int>(acos(res.validity.first) * 180 / 3.14);
 					ss.flush();
 					Mat *matToType = &frame;
-					putText(*matToType, ss.str(), Point(res.contour->startPoint.first, res.contour->startPoint.second), FONT_HERSHEY_SIMPLEX, 1, Scalar(0, 255, 0));
+					putText(*matToType, ss.str(), Point(res.contour->startPoint.first, res.contour->startPoint.second), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 0, 0));
 				}
 				
 			}

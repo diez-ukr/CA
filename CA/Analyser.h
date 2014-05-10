@@ -19,7 +19,7 @@ namespace CA
 		std::vector<std::shared_ptr<Gauge>> gauges;
 		int loadGauses(std::string &dirName);
 		std::pair<std::shared_ptr<Gauge>, std::pair<float, float>> getNearest(Contour *contour);
-		float mininalValidyty = 0.55;
+		float mininalValidyty = 0.6;
 		int minimalArea = 100;
 		std::vector<Result> analyse(Contour *contour);
 	public:

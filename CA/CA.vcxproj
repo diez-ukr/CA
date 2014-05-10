@@ -91,6 +91,7 @@
     <ClCompile Include="ContoursHierarchy.cpp" />
     <ClCompile Include="Gauge.cpp" />
     <ClCompile Include="Image.cpp" />
+    <ClCompile Include="Logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Analyser.h" />
@@ -99,6 +100,7 @@
     <ClInclude Include="dirent.h" />
     <ClInclude Include="Gauge.h" />
     <ClInclude Include="Image.h" />
+    <ClInclude Include="Logger.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

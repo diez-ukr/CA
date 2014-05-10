@@ -16,6 +16,7 @@ namespace CA
 		root = nullptr;
 		bool addOuterContour = false;
 		int cvOutContorsCount = 0;
+		if (cvHierarchy.size() == 0) addOuterContour = true;
 		for (unsigned i = 0; i < cvHierarchy.size(); i++)
 		{
 			if (cvHierarchy[i][3] == -1)

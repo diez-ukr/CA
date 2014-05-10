@@ -3,6 +3,8 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <sstream>
+#include "Logger.h"
 
 using namespace std;
 
@@ -14,7 +16,10 @@ namespace CA
 
 	Analyser::Analyser(std::string &dirName)
 	{
-		loadGauses(dirName);
+		int n = loadGauses(dirName);
+		stringstream ss;
+		ss << "Loaded " << n << " gauges";
+		Logger::logEvent(ss.str());
 	}
 
 	Analyser::~Analyser()

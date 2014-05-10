@@ -9,6 +9,7 @@ namespace CA
 		std::vector<unsigned char> base;
 		void Initalize(int nchannels, int height, int width, const char colorModel[] = nullptr);
 		std::vector<int> buildHistogram();
+		void getNeighbourIntens(unsigned i, unsigned j, unsigned char *dst);
 	public:
 		int nchannels;
 		int height;
@@ -26,6 +27,7 @@ namespace CA
 		unsigned char get(int i, int j);
 		void set(int i, int j, const unsigned char &val);
 		Image binarization(unsigned char threshold);
+		Image binarizationGauss(unsigned char deltaThreshold, unsigned char threshold);
 		Image clone();
 		Image grayScale();
 		void outRawFile(std::string filename);
