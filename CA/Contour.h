@@ -3,6 +3,12 @@
 
 namespace CA
 {
+	struct Rect
+	{
+		std::pair<int, int> tl;
+		std::pair<int, int> hw;
+	}; 
+
 	class Contour
 	{
 		std::vector<std::pair<int, int>> base;
@@ -30,6 +36,7 @@ namespace CA
 		float getArea();
 		float getPerimeter();
 		float getNorm();
+		Rect getRect();
 		
 		
 		static std::pair<int, int> scalarMultiply(Contour &l, Contour &r);

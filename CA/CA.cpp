@@ -1,4 +1,6 @@
 #pragma once
+#define _SECURE_SCL 0
+
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -89,7 +91,7 @@ namespace {
 
 
 
-			Mat frameContrast = Mat::zeros(frame.size(), frame.type());
+			/*Mat frameContrast = Mat::zeros(frame.size(), frame.type());
 
 			for (int y = 0; y < frame.rows; y++)
 			{
@@ -101,13 +103,16 @@ namespace {
 							saturate_cast<uchar>(1.0 * (frame.at<Vec3b>(y, x)[c]));
 					}
 				}
-			}
+			}*/
 
 
 
 
-			clock_t t1 = clock();
-			IplImage ipl(frameContrast);
+			IplImage ipl(frame);
+
+			//clock_t t1 = clock();
+
+
 			/*cout << ((clock() - t1)) << endl; t1 = clock();
 			{
 				CA::Contour *a1 = gauges[0]->contoursHierarchy->getRoot()->childs[0];
@@ -117,30 +122,47 @@ namespace {
 			}*/
 			//cout << "maxInterrelationFunction" << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_color(ipl);
-			cout << ((clock() - t1) ) << endl; t1 = clock();
+			//cout << "creating color CA image: " << ((clock() - t1) ) << endl; t1 = clock();
 			CA::Image caim_grey(caim_color.grayScale());
-			cout << ((clock() - t1) ) << endl; t1 = clock();
+			//cout << "turning CA image to grayscale: " << ((clock() - t1)) << endl; t1 = clock();
 
-			int threshold = caim_grey.otsuThreshold();
-			cout << ((clock() - t1)) << endl; t1 = clock();
-			cout << "threshold = " << threshold << endl;
-			CA::Image caim_bin(caim_grey.binarization(120));
+			Mat frameGray(cv::Size(caim_grey.width, caim_grey.height), caim_grey.getCvType(), caim_grey.getBase());
+			Mat frameBlur;
+			//cout << ((clock() - t1)) << endl; t1 = clock();
+			blur(frameGray, frameBlur, Size(70, 70));
+			//cout << "getting blur image: " << ((clock() - t1)) << endl; t1 = clock();
+
+			CA::Image caim_bin(caim_grey.binarization(CA::Image(frameBlur)));
+			//cout << "binarization: " << ((clock() - t1)) << endl; t1 = clock();
+			//int threshold = caim_grey.otsuThreshold();
+			//cout << ((clock() - t1)) << endl; t1 = clock();
+			//cout << "threshold = " << threshold << endl;
+			//CA::Image caim_bin(caim_grey.binarization(100));
 			//CA::Image caim_bin(caim_grey.binarizationGauss(20, threshold));
-			cout << ((clock() - t1) ) << endl; t1 = clock();
+			//cout << ((clock() - t1) ) << endl; t1 = clock();
 
 			Mat frameBin(cv::Size(caim_bin.width, caim_bin.height), caim_bin.getCvType(), caim_bin.getBase());
-			
+
+			//cout << "creating cv bin image: " << ((clock() - t1)) << endl; t1 = clock();
 			
 			vector<vector<Point>> cvContours;
 			vector<Vec4i> cvHierarchy;
 
 			//findContours(fim, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+			/*Mat im_gray;
+			cvtColor(frameContrast, im_gray, CV_RGB2GRAY);*/
+
 			Mat imageToFindContour = frameBin.clone();
 			findContours(imageToFindContour, cvContours, cvHierarchy, RETR_TREE, CHAIN_APPROX_TC89_KCOS);
 
-			CA::ContoursHierarchy ca_ch(cvContours, cvHierarchy, frameBin.cols, frameBin.rows);
-			vector<CA::Result> resV = analyser.analyse(ca_ch);
+			//cout << "cv finds contours: " << ((clock() - t1)) << endl; t1 = clock();
 
+			CA::ContoursHierarchy ca_ch(cvContours, cvHierarchy, frameBin.cols, frameBin.rows);
+			//cout << "creating CA hierarchy: " << ((clock() - t1)) << endl; t1 = clock();
+			vector<CA::Result> resV = analyser.analyse(ca_ch);
+			//cout << "analysing: " << ((clock() - t1)) << endl; t1 = clock();
+			//system("pause");
 			static int fps = 0;
 			{ /*FPS*/
 				static int sec = clock() / 1000;
@@ -167,10 +189,15 @@ namespace {
 				{
 					stringstream ss;
 					ss << res.gauge->gaugeCharacter;
-					ss << static_cast<int>(acos(res.validity.first) * 180 / 3.14);
+					//ss << static_cast<int>(acos(res.validity.first) * 180 / 3.14);
 					ss.flush();
 					Mat *matToType = &frame;
 					putText(*matToType, ss.str(), Point(res.contour->startPoint.first, res.contour->startPoint.second), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 0, 0));
+					{/*draw Rect*/
+						CA::Rect rect = res.contour->getRect();
+						rectangle(*matToType, cv::Rect(rect.tl.first, rect.tl.second, rect.hw.first, rect.hw.second), Scalar(255, 0, 0));
+					}
+				
 				}
 				
 			}
@@ -179,8 +206,6 @@ namespace {
 				imshow(window_name, frame);
 			if (mode == "bin")
 				imshow(window_name, frameBin);
-			if (mode == "con")
-				imshow(window_name, frameContrast);
 
 
 
@@ -194,10 +219,6 @@ namespace {
 			case 'b':
 			case 'B':
 				mode = "bin";
-				break;
-			case 'c':
-			case 'C':
-				mode = "con";
 				break;
 			case 'q':
 			case 'Q':

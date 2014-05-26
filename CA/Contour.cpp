@@ -27,6 +27,7 @@ namespace CA
 		this->childs = childs;
 		this->base = base;
 		this->startPoint = startPoint;
+		this->isAcfActual = false;
 	}
 
 	void Contour::addChild(Contour *child)
@@ -206,6 +207,7 @@ namespace CA
 			retval[i].first /= norm;
 			retval[i].second /= norm;
 		}
+		acf = retval;
 		return retval;
 	}
 
@@ -222,6 +224,7 @@ namespace CA
 
 	std::vector<std::pair<float, float>> Contour::getAcf()
 	{
+		changeVectorCount();
 		if (!isAcfActual)
 		{
 			calculateACF();
@@ -308,6 +311,33 @@ namespace CA
 		{
 			retval += evLength(base[i]);
 		}
+		return retval;
+	}
+
+	Rect Contour::getRect()
+	{
+		Rect retval;
+		std::pair<int, int> curPoint = startPoint;
+		int maxX = -100000;
+		int maxY = -100000;
+		int minX = 100000;
+		int minY = 100000;
+
+		for (auto i = 0; i < base.size(); i++)
+		{
+			curPoint.first += base[i].first;
+			curPoint.second += base[i].second;
+			if (curPoint.first > maxX)
+				maxX = curPoint.first;
+			else if (curPoint.first < minX)
+				minX = curPoint.first;
+			if (curPoint.second > maxY)
+				maxY = curPoint.second;
+			else if (curPoint.second < minY)
+				minY = curPoint.second;
+		}
+		retval.tl = std::make_pair(minX, minY);
+		retval.hw = std::make_pair(maxX - minX, maxY - minY);
 		return retval;
 	}
 }

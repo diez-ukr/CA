@@ -7,8 +7,6 @@
 
 using namespace std;
 
-#define _SECURE_SCL 0
-
 namespace CA
 {
 
@@ -115,16 +113,16 @@ namespace CA
 				float channelCoef1, channelCoef2, channelCoef3;
 				if (!strcmp("BGR", this->colorModel))
 				{
-					channelCoef1 = 0.114;
-					channelCoef2 = 0.587;
-					channelCoef3 = 0.299;
+					channelCoef1 = 0.114F;
+					channelCoef2 = 0.587F;
+					channelCoef3 = 0.299F;
 				}
 				else if (!strcmp("RGB", this->colorModel))
 				{
 
-					channelCoef1 = 0.299;
-					channelCoef2 = 0.587;
-					channelCoef3 = 0.114;
+					channelCoef1 = 0.299F;
+					channelCoef2 = 0.587F;
+					channelCoef3 = 0.114F;
 				}
 
 				for (int i = from; i < to; i++)
@@ -187,6 +185,49 @@ namespace CA
 					for (int j = 0; j < width; j++)
 					{
 						if (this->get(i, this->nchannels * j) > threshold)
+							retval.set(i, j, 255);
+						else
+							retval.set(i, j, 0);
+					}
+				}
+			}));
+		}
+		for (auto& thread : workers)
+		{
+			thread.join();
+		}
+		return retval;
+	}
+
+	Image Image::binarization(Image &blurImage)
+	{
+		if (blurImage.height != height || blurImage.width != width)
+			throw std::exception("Source image and blue image has different size.");
+		Image retval(1, height, width);
+		std::vector<std::pair<int, int>> limits;
+		int threadCount = 4;
+		int stripSize = height / threadCount;
+		int from = 0;
+		for (int k = 0; k < threadCount - 1; k++)
+		{
+			limits.push_back(std::make_pair(from, from + stripSize));
+			from += stripSize;
+		}
+		limits.push_back(std::make_pair(from, height));
+
+		std::vector<std::thread> workers;
+		for (int k = 0; k < threadCount; k++)
+		{
+			workers.push_back(std::thread([k, &limits, this, &retval, &blurImage]()
+			{
+				int from = limits[k].first;
+				int to = limits[k].second;
+				for (int i = from; i < to; i++)
+				{
+					for (int j = 0; j < width; j++)
+					{
+						//if (this->get(i, this->nchannels * j) > blurImage.get(i, this->nchannels * j))
+						if (static_cast<int>(this->get(i, this->nchannels * j)) * 1.2 > static_cast<int>(blurImage.get(i, this->nchannels * j)))
 							retval.set(i, j, 255);
 						else
 							retval.set(i, j, 0);

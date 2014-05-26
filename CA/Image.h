@@ -28,6 +28,7 @@ namespace CA
 		void set(int i, int j, const unsigned char &val);
 		Image binarization(unsigned char threshold);
 		Image binarizationGauss(unsigned char deltaThreshold, unsigned char threshold);
+		Image binarization(Image &blurImage);
 		Image clone();
 		Image grayScale();
 		void outRawFile(std::string filename);
